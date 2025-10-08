@@ -13,7 +13,7 @@ jobs:
       - checkout
 
   build_docker_image:
-    machine: true  # ✅ Use machine executor to enable Docker
+    machine: true  # ✅ Enables Docker support
     steps:
       - checkout
       - run:
@@ -30,16 +30,24 @@ jobs:
             docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/llmops-repo/llmops-app:latest
 
   deploy_to_gke:
-    machine: true  # ✅ Use machine executor here as well
+    machine: true  # ✅ Required for Docker and kubectl usage
     steps:
       - checkout
+
+      - run:
+          name: Install kubectl
+          command: |
+            curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            sudo mv kubectl /usr/local/bin/
+
       - run:
           name: Authenticate with Google Cloud
           command: |
             echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
             gcloud auth activate-service-account --key-file=gcp-key.json
             gcloud auth configure-docker us-central1-docker.pkg.dev || gcloud auth configure-docker
-      
+
       - run:
           name: Configure GKE
           command: |
